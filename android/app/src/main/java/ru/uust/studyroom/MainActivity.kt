@@ -26,17 +26,20 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        handleSyncIntent(intent)
+
         val tvVersion = findViewById<TextView>(R.id.tv_app_version)
         val tvStatus = findViewById<TextView>(R.id.tv_cache_status)
         val btnUpdate = findViewById<Button>(R.id.btn_update_now)
         val btnBattery = findViewById<Button>(R.id.btn_battery_settings)
+        val btnEmbeddedWeb = findViewById<Button>(R.id.btn_open_embedded_web)
         val btnDownloadUpdate = findViewById<Button>(R.id.btn_download_update)
         val btnOpenWeb = findViewById<Button>(R.id.btn_open_website)
 
         val versionName = try {
             packageManager.getPackageInfo(packageName, 0).versionName
         } catch (_: Exception) {
-            "1.1.0"
+            "1.2.0"
         }
         tvVersion.text = "Версия $versionName · ПОНБ-УП-304С"
 
@@ -44,12 +47,16 @@ class MainActivity : AppCompatActivity() {
         refreshData(tvStatus)
 
         btnUpdate.setOnClickListener {
-            tvStatus.text = "Статус: синхронизация с сервером..."
+            tvStatus.text = "Статус: синхронизация с CDN-зеркалами..."
             refreshData(tvStatus, showToast = true)
         }
 
         btnBattery.setOnClickListener {
             openBatterySettings()
+        }
+
+        btnEmbeddedWeb.setOnClickListener {
+            openEmbeddedWebCabinet()
         }
 
         btnDownloadUpdate.setOnClickListener {
@@ -65,6 +72,101 @@ class MainActivity : AppCompatActivity() {
             }
             startActivity(intent)
         }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        handleSyncIntent(intent)
+    }
+
+    private fun handleSyncIntent(intent: Intent?) {
+        if (intent == null) return
+        val data = intent.data ?: return
+        if (data.scheme == "studyroom" && data.host == "sync") {
+            val rawPayload = data.getQueryParameter("data")
+            if (!rawPayload.isNullOrBlank()) {
+                val ok = ScheduleRepository.saveScheduleJson(this, rawPayload)
+                if (ok) {
+                    Toast.makeText(this, "Расписание успешно синхронизировано из веб-кабинета!", Toast.LENGTH_LONG).show()
+                    val tvStatus = findViewById<TextView>(R.id.tv_cache_status)
+                    tvStatus?.text = "Статус: актуальные данные загружены из веб-кабинета!"
+                } else {
+                    Toast.makeText(this, "Ошибка формата данных расписания", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun openEmbeddedWebCabinet() {
+        val dialog = android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+        val root = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setBackgroundColor(android.graphics.Color.parseColor("#09101d"))
+        }
+
+        val topBar = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            setPadding(28, 28, 28, 28)
+            setBackgroundColor(android.graphics.Color.parseColor("#040812"))
+        }
+
+        val btnClose = Button(this).apply {
+            text = "✕ Закрыть и обновить виджет"
+            setTextColor(android.graphics.Color.parseColor("#fbbf24"))
+            setBackgroundColor(android.graphics.Color.parseColor("#1e293b"))
+            setPadding(32, 16, 32, 16)
+            setOnClickListener {
+                dialog.dismiss()
+                refreshData(findViewById(R.id.tv_cache_status))
+            }
+        }
+        topBar.addView(btnClose)
+
+        val webView = android.webkit.WebView(this).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.databaseEnabled = true
+            settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+            webViewClient = object : android.webkit.WebViewClient() {
+                override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    evaluateJavascript(
+                        """
+                        (function() {
+                            try {
+                                if (window.AndroidBridge && window.__STUDY_ROOM_SCHEDULE__) {
+                                    window.AndroidBridge.syncSchedule(JSON.stringify(window.__STUDY_ROOM_SCHEDULE__));
+                                }
+                            } catch(e) {}
+                        })();
+                        """.trimIndent(), null
+                    )
+                }
+            }
+            addJavascriptInterface(object {
+                @android.webkit.JavascriptInterface
+                fun syncSchedule(json: String) {
+                    runOnUiThread {
+                        val saved = ScheduleRepository.saveScheduleJson(this@MainActivity, json)
+                        if (saved) {
+                            Toast.makeText(this@MainActivity, "Виджет мгновенно синхронизирован через WebView!", Toast.LENGTH_SHORT).show()
+                            refreshData(findViewById(R.id.tv_cache_status))
+                        }
+                    }
+                }
+            }, "AndroidBridge")
+            loadUrl(cabinetUrl)
+        }
+
+        root.addView(topBar)
+        root.addView(webView, android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT
+        ))
+
+        dialog.setContentView(root)
+        dialog.show()
     }
 
     @SuppressLint("BatteryLife")

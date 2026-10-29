@@ -142,7 +142,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({
         <div className="flex items-center space-x-2.5">
           <Smartphone className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
           <div className="text-xs text-slate-700 dark:text-slate-300">
-            <span className="font-bold text-slate-900 dark:text-white">Нативный виджет расписания для Android (v1.1.0):</span> пары и звонки прямо на домашнем экране телефона.
+            <span className="font-bold text-slate-900 dark:text-white">Нативный виджет расписания для Android (v1.2.0):</span> пары и звонки прямо на домашнем экране телефона.
           </div>
         </div>
         <div className="flex items-center space-x-2 self-end sm:self-auto flex-shrink-0">

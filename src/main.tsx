@@ -2,6 +2,17 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import './index.css';
+import scheduleData from './data/schedule.json';
+
+// Expose global schedule data for Android Companion WebView Auto-Sync
+(window as any).__STUDY_ROOM_SCHEDULE__ = scheduleData;
+if (typeof (window as any).AndroidBridge !== 'undefined' && (window as any).AndroidBridge.syncSchedule) {
+  try {
+    (window as any).AndroidBridge.syncSchedule(JSON.stringify(scheduleData));
+  } catch (e) {
+    console.warn('AndroidBridge sync skipped:', e);
+  }
+}
 
 // Register Service Worker for ultra-fast mobile loading & offline caching
 if ('serviceWorker' in navigator && import.meta.env.PROD) {

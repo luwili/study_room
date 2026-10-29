@@ -117,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span>Виджет Android</span>
             </div>
             <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-400 text-slate-950 uppercase">
-              v1.1.0
+              v1.2.0
             </span>
           </div>
           <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-tight">

@@ -115,7 +115,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={onOpenWidgetModal}
                 className="flex items-center space-x-1.5 px-2.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 rounded-lg border border-amber-200 dark:border-amber-500/30 transition-all shadow-sm active:scale-95"
-                title="Скачать нативный виджет расписания для Android (APK v1.1.0)"
+                title="Скачать нативный виджет расписания для Android (APK v1.2.0)"
               >
                 <Smartphone className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 <span className="hidden sm:inline">Виджет</span>

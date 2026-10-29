@@ -31,10 +31,25 @@ data class DaySchedule(
 
 object ScheduleRepository {
     private const val CACHE_FILE_NAME = "cached_schedule.json"
-    private const val PRIMARY_URL = "https://luwili.github.io/study_room/data/schedule.json"
-    private const val FALLBACK_URL = "https://raw.githubusercontent.com/luwili/study_room/main/src/data/schedule.json"
     private const val PREFS_NAME = "study_room_prefs"
     private const val KEY_LAST_SYNC = "last_sync_timestamp"
+
+    /**
+     * Multi-CDN mirror endpoints.
+     * Even if GitHub Pages or Raw GitHub is blocked by white lists or VPN split tunneling,
+     * jsDelivr Anycast (Cloudflare/Fastly/GCore) mirrors provide seamless connectivity in Russia.
+     */
+    val REPOSITORY_MIRRORS = listOf(
+        // 1. Direct GitHub Pages CDN
+        "https://luwili.github.io/study_room/data/schedule.json",
+        // 2. Anycast jsDelivr CDN mirrors (direct caching servers in Russia/Europe)
+        "https://cdn.jsdelivr.net/gh/luwili/study_room@main/public/data/schedule.json",
+        "https://fastly.jsdelivr.net/gh/luwili/study_room@main/public/data/schedule.json",
+        "https://gcore.jsdelivr.net/gh/luwili/study_room@main/public/data/schedule.json",
+        // 3. GitHub Raw fallback
+        "https://raw.githubusercontent.com/luwili/study_room/main/public/data/schedule.json",
+        "https://raw.githubusercontent.com/luwili/study_room/main/src/data/schedule.json"
+    )
 
     fun getSubjectAbbr(fullName: String): String {
         val lower = fullName.lowercase()
@@ -103,32 +118,43 @@ object ScheduleRepository {
         prefs.edit().putLong(KEY_LAST_SYNC, timestamp).apply()
     }
 
+    fun saveScheduleJson(context: Context, jsonContent: String): Boolean {
+        return try {
+            if (jsonContent.isNotBlank() && jsonContent.contains("ПОНБ-УП-304С")) {
+                val cacheFile = File(context.filesDir, CACHE_FILE_NAME)
+                cacheFile.writeText(jsonContent)
+                setLastSync(context, System.currentTimeMillis())
+                ScheduleWidgetProvider.updateAllWidgets(context)
+                true
+            } else false
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     fun fetchAndCache(context: Context): Boolean {
-        for (urlStr in listOf(PRIMARY_URL, FALLBACK_URL)) {
+        for (urlStr in REPOSITORY_MIRRORS) {
             try {
                 val url = URL(urlStr)
                 val conn = (url.openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 4000
-                    readTimeout = 6000
+                    connectTimeout = 3000
+                    readTimeout = 4000
                     requestMethod = "GET"
                     instanceFollowRedirects = true
-                    setRequestProperty("User-Agent", "StudyRoomWidget-Android/1.1.0")
+                    setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; StudyRoomWidget/1.2.0)")
                     setRequestProperty("Cache-Control", "no-cache, no-store")
-                    setRequestProperty("Accept", "application/json")
+                    setRequestProperty("Accept", "application/json, text/plain, */*")
                 }
                 conn.connect()
 
                 if (conn.responseCode == HttpURLConnection.HTTP_OK) {
                     val content = conn.inputStream.bufferedReader().use { it.readText() }
-                    if (content.isNotBlank() && content.contains("ПОНБ-УП-304С")) {
-                        val cacheFile = File(context.filesDir, CACHE_FILE_NAME)
-                        cacheFile.writeText(content)
-                        setLastSync(context, System.currentTimeMillis())
+                    if (saveScheduleJson(context, content)) {
                         return true
                     }
                 }
             } catch (_: Exception) {
-                // Try fallback URL
+                // Quickly move to the next mirror
             }
         }
         return false

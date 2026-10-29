@@ -334,7 +334,7 @@ export function App() {
               onClick={() => setWidgetModalOpen(true)}
               className="text-amber-600 dark:text-amber-400 font-semibold hover:underline transition-colors flex items-center space-x-1"
             >
-              <span>Виджет для Android (APK v1.1.0)</span>
+              <span>Виджет для Android (APK v1.2.0)</span>
             </button>
             <span>·</span>
             <a

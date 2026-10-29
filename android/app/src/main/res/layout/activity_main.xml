@@ -121,6 +121,33 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
+        <!-- VPN & Whitelist Connectivity Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_pair_item"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🌐 Режим белых списков и VPN"
+                android:textColor="@color/amber_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="Если интернет ограничен и работает только через VPN:\n• В настройках вашего VPN (V2Ray, Outline, Hiddify) добавьте «ПОНБ-УП-304С» в список туннеля (или выберите «Все приложения»).\n• Встроено 6 независимых CDN-зеркал (jsDelivr Anycast, GitHub Pages, Fastly, GCore).\n• Откройте веб-кабинет кнопкой ниже — виджет автоматически получит расписание через браузер даже при блокировках!"
+                android:textColor="@color/text_subtle"
+                android:textSize="12sp"
+                android:lineSpacingExtra="3dp" />
+        </LinearLayout>
+
         <!-- Actions -->
         <Button
             android:id="@+id/btn_update_now"
@@ -133,12 +160,21 @@
             android:textStyle="bold" />
 
         <Button
+            android:id="@+id/btn_open_embedded_web"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="@color/card_surface"
+            android:text="Открыть веб-кабинет (автосинхронизация)"
+            android:textColor="@color/text_white" />
+
+        <Button
             android:id="@+id/btn_download_update"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginTop="10dp"
             android:backgroundTint="@color/card_surface"
-            android:text="Скачать свежий APK (v1.1.0)"
+            android:text="Скачать свежий APK (v1.2.0)"
             android:textColor="@color/text_white" />
 
         <Button
@@ -147,7 +183,7 @@
             android:layout_height="52dp"
             android:layout_marginTop="10dp"
             android:backgroundTint="@color/card_surface"
-            android:text="Открыть веб-кабинет"
-            android:textColor="@color/text_white" />
+            android:text="Открыть во внешнем браузере"
+            android:textColor="@color/text_muted" />
     </LinearLayout>
 </ScrollView>

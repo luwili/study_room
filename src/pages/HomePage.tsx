@@ -119,7 +119,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenSync, isSy
                 className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-semibold text-sm backdrop-blur-md border border-amber-400/35 hover:border-amber-300 shadow-sm transition-all"
               >
                 <Smartphone className="w-4 h-4 text-amber-300" />
-                <span>Виджет Android (v1.1.0)</span>
+                <span>Виджет Android (v1.2.0)</span>
               </button>
             )}
           </div>
@@ -147,11 +147,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenSync, isSy
             <div className="flex items-center space-x-2">
               <span className="font-bold text-white text-sm sm:text-base">Виджет расписания для Android</span>
               <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-400 text-slate-950 uppercase">
-                v1.1.0 (Samsung & Xiaomi)
+                v1.2.0 (Белые списки & VPN)
               </span>
             </div>
             <p className="text-xs text-slate-300 mt-0.5">
-              Новая версия: исправлена стабильность фонового обновления на Samsung One UI, пары и аудитории прямо на экране телефона.
+              Новая версия: работа через белые списки и VPN (6 CDN-зеркал), мгновенная передача расписания из браузера в виджет.
             </p>
           </div>
         </div>
