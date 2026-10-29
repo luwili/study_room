@@ -691,8 +691,10 @@ def sync_all(target_week=None, force=False):
     sched_path = root_dir / 'src' / 'data' / 'schedule.json'
     ann_path = root_dir / 'src' / 'data' / 'announcements.json'
 
-    # Сохранение расписания
-    if total_semester_pairs > 0 or force:
+    # Сохранение расписания (с защитой от затирания при сбое авторизации или ночных работах ИСУ УУНиТ)
+    if total_semester_pairs == 0:
+        print("ВНИМАНИЕ: Из ИСУ УУНиТ получено 0 пар. Существующее расписание сохранено в безопасности (перезапись заблокирована).")
+    else:
         saved_bell_sched = BELL_SCHEDULE
         if sched_path.exists():
             try:
