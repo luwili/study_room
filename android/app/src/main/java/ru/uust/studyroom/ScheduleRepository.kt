@@ -33,6 +33,8 @@ object ScheduleRepository {
     private const val CACHE_FILE_NAME = "cached_schedule.json"
     private const val PRIMARY_URL = "https://luwili.github.io/study_room/data/schedule.json"
     private const val FALLBACK_URL = "https://raw.githubusercontent.com/luwili/study_room/main/src/data/schedule.json"
+    private const val PREFS_NAME = "study_room_prefs"
+    private const val KEY_LAST_SYNC = "last_sync_timestamp"
 
     fun getSubjectAbbr(fullName: String): String {
         val lower = fullName.lowercase()
@@ -89,14 +91,31 @@ object ScheduleRepository {
         }
     }
 
+    fun shouldRefreshNetwork(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val lastSync = prefs.getLong(KEY_LAST_SYNC, 0L)
+        // Refresh at most once every 15 minutes during background screen unlocks
+        return System.currentTimeMillis() - lastSync > 15 * 60 * 1000L
+    }
+
+    private fun setLastSync(context: Context, timestamp: Long) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putLong(KEY_LAST_SYNC, timestamp).apply()
+    }
+
     fun fetchAndCache(context: Context): Boolean {
         for (urlStr in listOf(PRIMARY_URL, FALLBACK_URL)) {
             try {
                 val url = URL(urlStr)
-                val conn = url.openConnection() as HttpURLConnection
-                conn.connectTimeout = 5000
-                conn.readTimeout = 7000
-                conn.requestMethod = "GET"
+                val conn = (url.openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 4000
+                    readTimeout = 6000
+                    requestMethod = "GET"
+                    instanceFollowRedirects = true
+                    setRequestProperty("User-Agent", "StudyRoomWidget-Android/1.1.0")
+                    setRequestProperty("Cache-Control", "no-cache, no-store")
+                    setRequestProperty("Accept", "application/json")
+                }
                 conn.connect()
 
                 if (conn.responseCode == HttpURLConnection.HTTP_OK) {
@@ -104,6 +123,7 @@ object ScheduleRepository {
                     if (content.isNotBlank() && content.contains("ПОНБ-УП-304С")) {
                         val cacheFile = File(context.filesDir, CACHE_FILE_NAME)
                         cacheFile.writeText(content)
+                        setLastSync(context, System.currentTimeMillis())
                         return true
                     }
                 }
@@ -116,26 +136,43 @@ object ScheduleRepository {
 
     fun getTodaySchedule(context: Context): DaySchedule {
         val cacheFile = File(context.filesDir, CACHE_FILE_NAME)
-        val jsonString = if (cacheFile.exists()) {
-            cacheFile.readText()
+        var jsonString = if (cacheFile.exists()) {
+            try {
+                cacheFile.readText()
+            } catch (_: Exception) {
+                ""
+            }
         } else {
-            fetchAndCache(context)
-            if (cacheFile.exists()) cacheFile.readText() else ""
+            ""
+        }
+
+        // Fallback to bundled asset if cache doesn't exist yet (guarantees widget is never empty)
+        if (jsonString.isBlank()) {
+            try {
+                context.assets.open("schedule.json").use { stream ->
+                    jsonString = stream.bufferedReader().use { it.readText() }
+                    cacheFile.writeText(jsonString)
+                }
+            } catch (_: Exception) {
+            }
         }
 
         if (jsonString.isBlank()) {
-            return DaySchedule("Сегодня", TimeUtils.getUfaDateString(), 8, true, emptyList())
+            return DaySchedule("Сегодня", TimeUtils.getUfaDateString(), TimeUtils.calculateCurrentWeek(), true, emptyList())
         }
 
         return try {
             val root = JSONObject(jsonString)
-            val currentWeekNumber = root.optInt("currentWeekNumber", 8)
+            // Dynamically calculate current week based on date; fallback to json if calculation fails
+            val dynamicWeekNumber = TimeUtils.calculateCurrentWeek()
+            val currentWeekNumber = if (dynamicWeekNumber in 1..17) dynamicWeekNumber else root.optInt("currentWeekNumber", 9)
             val dayOfWeek = TimeUtils.getUfaDayOfWeek()
             val todayDate = TimeUtils.getUfaDateString()
 
             // If Sunday (7), show Monday's schedule of upcoming week
-            val targetDayOfWeek = if (dayOfWeek == 7) 1 else dayOfWeek
-            val targetWeekNumber = if (dayOfWeek == 7) currentWeekNumber + 1 else currentWeekNumber
+            val isSunday = dayOfWeek == 7
+            val targetDayOfWeek = if (isSunday) 1 else dayOfWeek
+            val targetWeekNumber = if (isSunday) (currentWeekNumber + 1).coerceAtMost(17) else currentWeekNumber
 
             var targetDayObj: JSONObject? = null
 
@@ -172,7 +209,7 @@ object ScheduleRepository {
             }
 
             if (targetDayObj == null) {
-                return DaySchedule("Сегодня", todayDate, currentWeekNumber, true, emptyList())
+                return DaySchedule("Сегодня", todayDate, currentWeekNumber, !isSunday, emptyList())
             }
 
             val dayName = targetDayObj.optString("dayName", "Сегодня")
@@ -185,7 +222,7 @@ object ScheduleRepository {
                     val p = pairsArr.optJSONObject(i) ?: continue
                     val tStart = p.optString("timeStart", "")
                     val tEnd = p.optString("timeEnd", "")
-                    val isCurrent = if (dayOfWeek <= 6 && targetWeekNumber == currentWeekNumber) {
+                    val isCurrent = if (!isSunday && targetWeekNumber == currentWeekNumber) {
                         TimeUtils.isPairNow(tStart, tEnd)
                     } else false
 
@@ -213,11 +250,11 @@ object ScheduleRepository {
                 dayName = dayName,
                 date = dateStr,
                 weekNumber = targetWeekNumber,
-                isToday = dayOfWeek != 7,
+                isToday = !isSunday,
                 pairs = pairsList
             )
         } catch (_: Exception) {
-            DaySchedule("Сегодня", TimeUtils.getUfaDateString(), 8, true, emptyList())
+            DaySchedule("Сегодня", TimeUtils.getUfaDateString(), TimeUtils.calculateCurrentWeek(), true, emptyList())
         }
     }
 }

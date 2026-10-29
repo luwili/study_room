@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "node -e \"const fs=require('fs'); fs.mkdirSync('public/data',{recursive:true}); fs.copyFileSync('src/data/schedule.json','public/data/schedule.json'); fs.copyFileSync('src/data/announcements.json','public/data/announcements.json');\" && tsc && vite build",
     "check": "tsc --noEmit",
     "test": "npm run check",
     "preview": "vite preview",

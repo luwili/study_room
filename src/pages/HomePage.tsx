@@ -15,7 +15,9 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
-  HeartHandshake
+  HeartHandshake,
+  Smartphone,
+  Download
 } from 'lucide-react';
 import emblemImg from '../assets/emblem.png';
 import scheduleData from '../data/schedule.json';
@@ -32,9 +34,10 @@ interface HomePageProps {
   onNavigate: (tab: string, itemId?: string) => void;
   onOpenSync?: () => void;
   isSyncing?: boolean;
+  onOpenWidgetModal?: () => void;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenSync, isSyncing = false }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenSync, isSyncing = false, onOpenWidgetModal }) => {
   const timeInfo = getUfaTimeInfo();
   const [announcementFilter, setAnnouncementFilter] = useState<string>('all');
   const [showAllAnnouncements, setShowAllAnnouncements] = useState<boolean>(false);
@@ -109,6 +112,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenSync, isSy
               <GraduationCap className="w-4 h-4" />
               <span>Предметы семестра</span>
             </button>
+
+            {onOpenWidgetModal && (
+              <button
+                onClick={onOpenWidgetModal}
+                className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-semibold text-sm backdrop-blur-md border border-amber-400/35 hover:border-amber-300 shadow-sm transition-all"
+              >
+                <Smartphone className="w-4 h-4 text-amber-300" />
+                <span>Виджет Android (v1.1.0)</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -121,6 +134,45 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenSync, isSy
             alt="Эмблема ПОНБ"
             className="w-72 h-72 sm:w-80 sm:h-80 md:w-88 md:h-88 lg:w-[390px] lg:h-[390px] object-contain drop-shadow-[0_15px_35px_rgba(0,0,0,0.85)] opacity-40 sm:opacity-75 md:opacity-90 lg:opacity-95 transition-opacity duration-500"
           />
+        </div>
+      </div>
+
+      {/* Android Widget Update Banner */}
+      <div className="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-[#0b2447] to-[#071328] border border-amber-500/30 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-3.5">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400 flex-shrink-0">
+            <Smartphone className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="font-bold text-white text-sm sm:text-base">Виджет расписания для Android</span>
+              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-400 text-slate-950 uppercase">
+                v1.1.0 (Samsung & Xiaomi)
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Новая версия: исправлена стабильность фонового обновления на Samsung One UI, пары и аудитории прямо на экране телефона.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2 w-full sm:w-auto flex-shrink-0">
+          <a
+            href="https://github.com/luwili/study_room/releases/download/widget-apk-latest/StudyRoom-Widget.apk"
+            download="StudyRoom-Widget.apk"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all active:scale-95"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Скачать APK</span>
+          </a>
+          {onOpenWidgetModal && (
+            <button
+              onClick={onOpenWidgetModal}
+              className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 text-xs font-medium border border-white/10 transition-colors"
+            >
+              Инструкция
+            </button>
+          )}
         </div>
       </div>
 

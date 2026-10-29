@@ -15,6 +15,7 @@ import android.widget.RemoteViews
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ScheduleWidgetProvider : AppWidgetProvider() {
 
@@ -271,12 +272,18 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
             updateAppWidget(context, appWidgetManager, appWidgetId)
         }
 
+        val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
-            val updated = ScheduleRepository.fetchAndCache(context)
-            if (updated) {
-                CoroutineScope(Dispatchers.Main).launch {
-                    updateAllWidgets(context)
+            try {
+                val updated = ScheduleRepository.fetchAndCache(context)
+                if (updated) {
+                    withContext(Dispatchers.Main) {
+                        updateAllWidgets(context)
+                    }
                 }
+            } catch (_: Exception) {
+            } finally {
+                pendingResult.finish()
             }
         }
     }
@@ -293,11 +300,52 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        if (intent.action == ACTION_REFRESH) {
-            CoroutineScope(Dispatchers.IO).launch {
-                ScheduleRepository.fetchAndCache(context)
-                CoroutineScope(Dispatchers.Main).launch {
-                    updateAllWidgets(context)
+        when (intent.action) {
+            ACTION_REFRESH -> {
+                // 1. Immediately refresh views with local data for instant tactile feedback
+                updateAllWidgets(context)
+
+                // 2. Fetch fresh network data with goAsync() so Samsung One UI will not freeze/kill the thread
+                val pendingResult = goAsync()
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val updated = ScheduleRepository.fetchAndCache(context)
+                        if (updated) {
+                            withContext(Dispatchers.Main) {
+                                updateAllWidgets(context)
+                            }
+                        }
+                    } catch (_: Exception) {
+                    } finally {
+                        pendingResult.finish()
+                    }
+                }
+            }
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_MY_PACKAGE_REPLACED,
+            Intent.ACTION_TIME_SET,
+            Intent.ACTION_TIMEZONE_CHANGED,
+            Intent.ACTION_DATE_CHANGED,
+            Intent.ACTION_USER_PRESENT -> {
+                // Instantly update on screen unlock or day rollover
+                updateAllWidgets(context)
+
+                // Background sync if more than 15 mins since last sync
+                if (ScheduleRepository.shouldRefreshNetwork(context)) {
+                    val pendingResult = goAsync()
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val updated = ScheduleRepository.fetchAndCache(context)
+                            if (updated) {
+                                withContext(Dispatchers.Main) {
+                                    updateAllWidgets(context)
+                                }
+                            }
+                        } catch (_: Exception) {
+                        } finally {
+                            pendingResult.finish()
+                        }
+                    }
                 }
             }
         }

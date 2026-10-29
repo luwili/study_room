@@ -9,7 +9,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Smartphone,
+  Download
 } from 'lucide-react';
 import scheduleData from '../data/schedule.json';
 import { getUfaTimeInfo } from '../utils/time';
@@ -21,6 +23,7 @@ interface SchedulePageProps {
   onOpenSync?: () => void;
   isSyncing?: boolean;
   initialWeek?: number;
+  onOpenWidgetModal?: () => void;
 }
 
 export const SchedulePage: React.FC<SchedulePageProps> = ({
@@ -28,7 +31,8 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({
   onNavigateSubject,
   onOpenSync,
   isSyncing = false,
-  initialWeek
+  initialWeek,
+  onOpenWidgetModal
 }) => {
   const timeInfo = getUfaTimeInfo();
   const currentWeekNumber = scheduleData.currentWeekNumber || 8;
@@ -130,6 +134,34 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({
               Режим: Вся неделя
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Android Widget Companion Banner */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 sm:px-5 sm:py-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/25">
+        <div className="flex items-center space-x-2.5">
+          <Smartphone className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+          <div className="text-xs text-slate-700 dark:text-slate-300">
+            <span className="font-bold text-slate-900 dark:text-white">Нативный виджет расписания для Android (v1.1.0):</span> пары и звонки прямо на домашнем экране телефона.
+          </div>
+        </div>
+        <div className="flex items-center space-x-2 self-end sm:self-auto flex-shrink-0">
+          <a
+            href="https://github.com/luwili/study_room/releases/download/widget-apk-latest/StudyRoom-Widget.apk"
+            download="StudyRoom-Widget.apk"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-sm transition-all active:scale-95"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Скачать APK</span>
+          </a>
+          {onOpenWidgetModal && (
+            <button
+              onClick={onOpenWidgetModal}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors"
+            >
+              Инструкция
+            </button>
+          )}
         </div>
       </div>
 

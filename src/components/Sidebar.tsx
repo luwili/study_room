@@ -12,7 +12,10 @@ import {
   X,
   Phone,
   MapPin,
-  HeartHandshake
+  HeartHandshake,
+  Smartphone,
+  Download,
+  Info
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -21,11 +24,12 @@ interface SidebarProps {
   mobileOpen: boolean;
   onCloseMobile: () => void;
   favoritesCount?: number;
+  onOpenWidgetModal?: () => void;
 }
 
 export const NAV_ITEMS = [
   { id: 'home', label: 'Главная', icon: Home, badge: null },
-  { id: 'schedule', label: 'Расписание', icon: Calendar, badge: 'Неделя 8' },
+  { id: 'schedule', label: 'Расписание', icon: Calendar, badge: 'Неделя 9' },
   { id: 'subjects', label: 'Предметы', icon: BookOpen, badge: '10' },
   { id: 'topics', label: 'Темы и конспекты', icon: FileText, badge: '28' },
   { id: 'exam', label: 'Подготовка к экзаменам', icon: GraduationCap, badge: 'Карточки' },
@@ -41,7 +45,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   mobileOpen,
   onCloseMobile,
-  favoritesCount = 0
+  favoritesCount = 0,
+  onOpenWidgetModal
 }) => {
   const handleNavClick = (id: string) => {
     onSelectTab(id);
@@ -104,6 +109,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
             );
           })}
         </nav>
+        {/* Android Widget Banner */}
+        <div className="mt-4 p-3 rounded-xl bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-transparent border border-amber-500/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-amber-700 dark:text-amber-400 font-bold text-xs">
+              <Smartphone className="w-4 h-4" />
+              <span>Виджет Android</span>
+            </div>
+            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-400 text-slate-950 uppercase">
+              v1.1.0
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-tight">
+            Расписание и звонки прямо на главном экране телефона.
+          </p>
+          <div className="mt-2.5 flex items-center space-x-1.5">
+            <a
+              href="https://github.com/luwili/study_room/releases/download/widget-apk-latest/StudyRoom-Widget.apk"
+              download="StudyRoom-Widget.apk"
+              className="flex-1 flex items-center justify-center space-x-1.5 py-1.5 px-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition-all shadow-sm active:scale-95 text-center"
+            >
+              <Download className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">Скачать APK</span>
+            </a>
+            {onOpenWidgetModal && (
+              <button
+                onClick={onOpenWidgetModal}
+                className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors"
+                title="Инструкция по установке и настройке"
+                aria-label="Инструкция"
+              >
+                <Info className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Curator & University Footer */}

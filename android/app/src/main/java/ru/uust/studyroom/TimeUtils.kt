@@ -46,6 +46,28 @@ object TimeUtils {
     }
 
     /**
+     * Dynamically calculates current semester week number (1..17).
+     * Semester began 2026-09-01 (Tuesday), so Monday of week 1 was 2026-08-31.
+     * Guarantees accurate week determination even when offline or cache is old.
+     */
+    fun calculateCurrentWeek(cal: Calendar = getUfaCalendar()): Int {
+        val startMonday = Calendar.getInstance(UFA_TIMEZONE).apply {
+            set(Calendar.YEAR, 2026)
+            set(Calendar.MONTH, Calendar.AUGUST)
+            set(Calendar.DAY_OF_MONTH, 31)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val diffMillis = cal.timeInMillis - startMonday.timeInMillis
+        if (diffMillis < 0) return 1
+        val diffDays = (diffMillis / (1000L * 60 * 60 * 24)).toInt()
+        val week = (diffDays / 7) + 1
+        return week.coerceIn(1, 17)
+    }
+
+    /**
      * Checks if current Ufa time is within [timeStart] (e.g. "08:00") and [timeEnd] (e.g. "09:20")
      */
     fun isPairNow(timeStart: String, timeEnd: String): Boolean {

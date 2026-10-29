@@ -6,7 +6,8 @@ import {
   Bookmark, 
   Clock, 
   Menu, 
-  Building
+  Building,
+  Smartphone
 } from 'lucide-react';
 import emblemIcon from '../assets/emblem-icon.png';
 import { getUfaTimeInfo, UfaTimeInfo } from '../utils/time';
@@ -19,6 +20,7 @@ interface HeaderProps {
   favoritesCount: number;
   currentTab: string;
   onSelectTab: (tab: string) => void;
+  onOpenWidgetModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -27,7 +29,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSearch,
   onOpenMobileMenu,
   favoritesCount,
-  onSelectTab
+  onSelectTab,
+  onOpenWidgetModal
 }) => {
   const [timeInfo, setTimeInfo] = useState<UfaTimeInfo>(getUfaTimeInfo());
 
@@ -106,8 +109,20 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Right section: Search, Favorites, Theme */}
+          {/* Right section: Widget, Search, Favorites, Theme */}
           <div className="flex items-center space-x-2">
+            {onOpenWidgetModal && (
+              <button
+                onClick={onOpenWidgetModal}
+                className="flex items-center space-x-1.5 px-2.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 rounded-lg border border-amber-200 dark:border-amber-500/30 transition-all shadow-sm active:scale-95"
+                title="Скачать нативный виджет расписания для Android (APK v1.1.0)"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                <span className="hidden sm:inline">Виджет</span>
+                <span className="text-[10px] bg-amber-400 text-slate-950 px-1 py-0.2 rounded font-bold">APK</span>
+              </button>
+            )}
+
             <button
               onClick={onOpenSearch}
               className="flex items-center space-x-2 px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors"

@@ -19,6 +19,7 @@ const InstitutePage = lazy(() => import('./pages/InstitutePage').then(m => ({ de
 const GratitudePage = lazy(() => import('./pages/GratitudePage').then(m => ({ default: m.GratitudePage })));
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage').then(m => ({ default: m.FavoritesPage })));
 const SearchModal = lazy(() => import('./components/SearchModal').then(m => ({ default: m.SearchModal })));
+const WidgetDownloadModal = lazy(() => import('./components/WidgetDownloadModal').then(m => ({ default: m.WidgetDownloadModal })));
 
 const PageSkeleton = () => (
   <div className="space-y-6 pb-12 animate-pulse">
@@ -68,6 +69,7 @@ export function App() {
 
   // Modals & Drawers
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [widgetModalOpen, setWidgetModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // 1-Click Sync Status
@@ -211,6 +213,7 @@ export function App() {
         favoritesCount={favorites.length}
         currentTab={currentTab}
         onSelectTab={handleSelectTab}
+        onOpenWidgetModal={() => setWidgetModalOpen(true)}
       />
 
       {/* Main Body */}
@@ -222,6 +225,7 @@ export function App() {
           mobileOpen={mobileMenuOpen}
           onCloseMobile={() => setMobileMenuOpen(false)}
           favoritesCount={favorites.length}
+          onOpenWidgetModal={() => setWidgetModalOpen(true)}
         />
 
         {/* Content Page */}
@@ -231,6 +235,7 @@ export function App() {
               onNavigate={handleGlobalNavigate} 
               onOpenSync={handleStartOneClickSync}
               isSyncing={isSyncing}
+              onOpenWidgetModal={() => setWidgetModalOpen(true)}
             />
           )}
 
@@ -241,6 +246,7 @@ export function App() {
               onNavigateSubject={handleNavigateSubject}
               onOpenSync={handleStartOneClickSync}
               isSyncing={isSyncing}
+              onOpenWidgetModal={() => setWidgetModalOpen(true)}
             />
           )}
 
@@ -324,6 +330,13 @@ export function App() {
               <span>Искренняя благодарность</span>
             </button>
             <span>·</span>
+            <button
+              onClick={() => setWidgetModalOpen(true)}
+              className="text-amber-600 dark:text-amber-400 font-semibold hover:underline transition-colors flex items-center space-x-1"
+            >
+              <span>Виджет для Android (APK v1.1.0)</span>
+            </button>
+            <span>·</span>
             <a
               href="https://law-bsu.ru/"
               target="_blank"
@@ -352,6 +365,16 @@ export function App() {
             isOpen={searchModalOpen}
             onClose={() => setSearchModalOpen(false)}
             onNavigate={handleGlobalNavigate}
+          />
+        </Suspense>
+      )}
+
+      {/* Android Widget Download Modal */}
+      {widgetModalOpen && (
+        <Suspense fallback={null}>
+          <WidgetDownloadModal
+            isOpen={widgetModalOpen}
+            onClose={() => setWidgetModalOpen(false)}
           />
         </Suspense>
       )}

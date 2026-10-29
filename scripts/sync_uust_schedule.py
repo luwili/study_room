@@ -721,6 +721,17 @@ def sync_all(target_week=None, force=False):
             json.dump(doc_sched, f, ensure_ascii=False, indent=2)
         print(f"Расписание ({total_semester_pairs} пар на 17 недель) сохранено в {sched_path}.")
 
+        # Дополнительная репликация в public/data и android assets для прямого CDN и оффлайн-виджета
+        public_sched = root_dir / 'public' / 'data' / 'schedule.json'
+        public_sched.parent.mkdir(parents=True, exist_ok=True)
+        with open(public_sched, 'w', encoding='utf-8') as f:
+            json.dump(doc_sched, f, ensure_ascii=False, indent=2)
+
+        android_sched = root_dir / 'android' / 'app' / 'src' / 'main' / 'assets' / 'schedule.json'
+        android_sched.parent.mkdir(parents=True, exist_ok=True)
+        with open(android_sched, 'w', encoding='utf-8') as f:
+            json.dump(doc_sched, f, ensure_ascii=False, indent=2)
+
     # 2. Формирование и слияние объявлений
     base_defaults = [
         {
@@ -784,6 +795,11 @@ def sync_all(target_week=None, force=False):
     with open(ann_path, 'w', encoding='utf-8') as f:
         json.dump(combined_ann, f, ensure_ascii=False, indent=2)
     print(f"Объявления ({len(combined_ann)} шт.) успешно сохранены в {ann_path}.")
+
+    public_ann = root_dir / 'public' / 'data' / 'announcements.json'
+    public_ann.parent.mkdir(parents=True, exist_ok=True)
+    with open(public_ann, 'w', encoding='utf-8') as f:
+        json.dump(combined_ann, f, ensure_ascii=False, indent=2)
 
     return True
 
