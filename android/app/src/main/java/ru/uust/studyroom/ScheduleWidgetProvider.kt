@@ -70,7 +70,8 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
         ): RemoteViews {
             val views = RemoteViews(context.packageName, R.layout.widget_schedule_columns)
 
-            // Header date without squishing "Неделя"
+            // Header date and week badge
+            views.setTextViewText(R.id.tv_week_badge, "${schedule.weekNumber} нед.")
             val headerDate = if (schedule.isToday) {
                 schedule.dayName
             } else {
@@ -139,6 +140,7 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
             schedule: DaySchedule
         ): RemoteViews {
             val views = RemoteViews(context.packageName, R.layout.widget_schedule_compact_rows)
+            views.setTextViewText(R.id.tv_week_badge, "${schedule.weekNumber} нед.")
 
             if (schedule.pairs.isEmpty()) {
                 views.setViewVisibility(R.id.layout_empty, View.VISIBLE)

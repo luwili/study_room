@@ -175,7 +175,7 @@ def calculate_current_week():
     current_monday = target_date - timedelta(days=target_date.weekday())
     current_monday = current_monday.replace(hour=0, minute=0, second=0, microsecond=0)
     diff_days = (current_monday - monday_start).days
-    return max(1, diff_days // 7 + 1)
+    return min(17, max(1, diff_days // 7 + 1))
 
 def create_opener():
     ctx = ssl.create_default_context()
@@ -748,8 +748,8 @@ def sync_all(target_week=None, force=False):
         {
             "id": "ann-2",
             "title": "Расписание на осенний семестр 2026: актуальный график",
-            "content": "Утверждено и опубликовано расписание учебных занятий группы ПОНБ-УП-304С на 8-ю неделю. Просьба обратить внимание на пары по административному процессу в четверг (ауд. 313) и финансовому праву (ауд. 405). Официальный первоисточник: https://law-bsu.ru/schedules.",
-            "date": "2026-10-19",
+            "content": f"Утверждено и опубликовано расписание учебных занятий группы ПОНБ-УП-304С на {target_week}-ю неделю. Просьба обратить внимание на пары по административному процессу в четверг (ауд. 313) и финансовому праву (ауд. 405). Официальный первоисточник: https://law-bsu.ru/schedules.",
+            "date": "2026-11-02",
             "isPinned": True,
             "author": "Учебная часть Института права",
             "tag": "Расписание"

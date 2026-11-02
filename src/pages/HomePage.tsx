@@ -24,8 +24,8 @@ import scheduleData from '../data/schedule.json';
 import rawAnnouncements from '../data/announcements.json';
 import topicsMetadata from '../data/topics-metadata.json';
 import subjectsData from '../data/subjects.json';
-import { getUfaTimeInfo } from '../utils/time';
-import { Announcement, TopicMetadata } from '../types';
+import { getUfaTimeInfo, calculateCurrentWeek } from '../utils/time';
+import { Announcement, TopicMetadata, ScheduleDay, ScheduleItem } from '../types';
 
 const announcementsData: Announcement[] = rawAnnouncements as unknown as Announcement[];
 const topicsData: TopicMetadata[] = topicsMetadata as TopicMetadata[];
@@ -52,11 +52,18 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenSync, isSy
     return showAllAnnouncements ? filteredAnnouncements : filteredAnnouncements.slice(0, 6);
   }, [filteredAnnouncements, showAllAnnouncements]);
 
-  // Find schedule for today (or Monday if Sunday)
-  const todayDayOfWeek = timeInfo.dayOfWeek > 6 ? 1 : timeInfo.dayOfWeek;
-  const todaySchedule = useMemo(() => {
-    return scheduleData.days.find((d) => d.dayOfWeek === todayDayOfWeek) || scheduleData.days[0];
-  }, [todayDayOfWeek]);
+  // Academic week and today's schedule (or Monday of upcoming week if Sunday)
+  const currentWeekNumber = calculateCurrentWeek(timeInfo.date);
+  const isSunday = timeInfo.dayOfWeek > 6;
+  const targetWeekNumber = isSunday ? Math.min(17, currentWeekNumber + 1) : currentWeekNumber;
+  const todayDayOfWeek = isSunday ? 1 : timeInfo.dayOfWeek;
+
+  const todaySchedule: ScheduleDay = useMemo(() => {
+    const weekDays = (scheduleData as any).weeks?.[String(targetWeekNumber)]?.days as ScheduleDay[] | undefined;
+    return weekDays?.find((d) => d.dayOfWeek === todayDayOfWeek) || 
+      (scheduleData.days as unknown as ScheduleDay[]).find((d) => d.dayOfWeek === todayDayOfWeek) || 
+      (scheduleData.days[0] as unknown as ScheduleDay);
+  }, [targetWeekNumber, todayDayOfWeek]);
 
   // Featured study notes
   const featuredTopics = useMemo(() => {
@@ -119,7 +126,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenSync, isSy
                 className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-semibold text-sm backdrop-blur-md border border-amber-400/35 hover:border-amber-300 shadow-sm transition-all"
               >
                 <Smartphone className="w-4 h-4 text-amber-300" />
-                <span>Виджет Android (v1.2.0)</span>
+                <span>Виджет Android (v1.3.0)</span>
               </button>
             )}
           </div>
@@ -147,11 +154,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenSync, isSy
             <div className="flex items-center space-x-2">
               <span className="font-bold text-white text-sm sm:text-base">Виджет расписания для Android</span>
               <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-400 text-slate-950 uppercase">
-                v1.2.0 (Белые списки & VPN)
+                v1.3.0 (Динамическая неделя & бейджи)
               </span>
             </div>
             <p className="text-xs text-slate-300 mt-0.5">
-              Новая версия: работа через белые списки и VPN (6 CDN-зеркал), мгновенная передача расписания из браузера в виджет.
+              Новая версия: динамический календарный расчет учебной недели (1–17), бейджи недели во всех форматах виджета, актуализация на 10-ю неделю.
             </p>
           </div>
         </div>
@@ -188,10 +195,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenSync, isSy
                 </div>
                 <div>
                   <h2 className="font-bold text-slate-900 dark:text-white text-base">
-                    Расписание: {todaySchedule.dayName}
+                    Расписание: {todaySchedule.dayName} {isSunday && <span className="text-xs font-normal text-amber-600 dark:text-amber-400">(на завтра)</span>}
                   </h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Неделя {(scheduleData as any).currentWeekNumber || 8} · {timeInfo.dateString}
+                    Неделя {targetWeekNumber} ({targetWeekNumber % 2 === 0 ? 'четная' : 'нечетная'}) · {isSunday ? `Следующий понедельник · Сегодня: ${timeInfo.dateString}` : timeInfo.dateString}
                   </p>
                 </div>
               </div>
@@ -223,7 +230,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenSync, isSy
 
             {/* List of pairs */}
             <div className="space-y-3">
-              {todaySchedule.pairs.map((p) => {
+              {todaySchedule.pairs.map((p: ScheduleItem) => {
                 const isCurrentPair = timeInfo.currentPair === p.pairNumber && timeInfo.dayOfWeek === todaySchedule.dayOfWeek;
                 return (
                   <div

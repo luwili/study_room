@@ -17,6 +17,7 @@ import {
   Download,
   Info
 } from 'lucide-react';
+import { calculateCurrentWeek } from '../utils/time';
 
 interface SidebarProps {
   currentTab: string;
@@ -29,7 +30,7 @@ interface SidebarProps {
 
 export const NAV_ITEMS = [
   { id: 'home', label: 'Главная', icon: Home, badge: null },
-  { id: 'schedule', label: 'Расписание', icon: Calendar, badge: 'Неделя 9' },
+  { id: 'schedule', label: 'Расписание', icon: Calendar, badge: `Неделя ${calculateCurrentWeek()}` },
   { id: 'subjects', label: 'Предметы', icon: BookOpen, badge: '10' },
   { id: 'topics', label: 'Темы и конспекты', icon: FileText, badge: '28' },
   { id: 'exam', label: 'Подготовка к экзаменам', icon: GraduationCap, badge: 'Карточки' },
@@ -117,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span>Виджет Android</span>
             </div>
             <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-400 text-slate-950 uppercase">
-              v1.2.0
+              v1.3.0
             </span>
           </div>
           <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 leading-tight">

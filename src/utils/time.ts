@@ -3,6 +3,41 @@
  */
 
 export const UFA_TIMEZONE = 'Asia/Yekaterinburg';
+export const SEMESTER_START_DATE = '2026-08-31';
+
+/**
+ * Dynamically calculates the current academic week number (1..17).
+ * Academic semester starts on Monday 2026-08-31 (Week 1).
+ */
+export function calculateCurrentWeek(customDate?: Date): number {
+  const now = customDate || new Date();
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: UFA_TIMEZONE,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric'
+  }).formatToParts(now);
+
+  const year = parseInt(parts.find(p => p.type === 'year')?.value || '0', 10);
+  const month = parseInt(parts.find(p => p.type === 'month')?.value || '0', 10);
+  const day = parseInt(parts.find(p => p.type === 'day')?.value || '0', 10);
+
+  const [startYear, startMonth, startDay] = SEMESTER_START_DATE.split('-').map(Number);
+  const startUtc = Date.UTC(startYear, startMonth - 1, startDay);
+  const currentUtc = Date.UTC(year, month - 1, day);
+
+  const diffDays = Math.floor((currentUtc - startUtc) / (1000 * 60 * 60 * 24));
+  const week = Math.floor(diffDays / 7) + 1;
+
+  return Math.max(1, Math.min(17, week));
+}
+
+/**
+ * Returns week type ('even' or 'odd') based on week number.
+ */
+export function getWeekType(weekNumber: number): 'even' | 'odd' {
+  return weekNumber % 2 === 0 ? 'even' : 'odd';
+}
 
 export interface UfaTimeInfo {
   date: Date;

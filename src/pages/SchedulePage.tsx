@@ -14,7 +14,7 @@ import {
   Download
 } from 'lucide-react';
 import scheduleData from '../data/schedule.json';
-import { getUfaTimeInfo } from '../utils/time';
+import { getUfaTimeInfo, calculateCurrentWeek } from '../utils/time';
 import { ScheduleDay, ScheduleItem, ScheduleWeek } from '../types';
 
 interface SchedulePageProps {
@@ -35,7 +35,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({
   onOpenWidgetModal
 }) => {
   const timeInfo = getUfaTimeInfo();
-  const currentWeekNumber = scheduleData.currentWeekNumber || 8;
+  const currentWeekNumber = calculateCurrentWeek(timeInfo.date);
   const [selectedWeek, setSelectedWeek] = useState<number>(initialWeek || currentWeekNumber);
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   
@@ -142,7 +142,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({
         <div className="flex items-center space-x-2.5">
           <Smartphone className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
           <div className="text-xs text-slate-700 dark:text-slate-300">
-            <span className="font-bold text-slate-900 dark:text-white">Нативный виджет расписания для Android (v1.2.0):</span> пары и звонки прямо на домашнем экране телефона.
+            <span className="font-bold text-slate-900 dark:text-white">Нативный виджет расписания для Android (v1.3.0):</span> пары и звонки прямо на домашнем экране телефона.
           </div>
         </div>
         <div className="flex items-center space-x-2 self-end sm:self-auto flex-shrink-0">
@@ -224,28 +224,32 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              8 (тек.)
+              {currentWeekNumber} (тек.)
             </button>
-            <button
-              onClick={() => setSelectedWeek(currentWeekNumber + 1)}
-              className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                selectedWeek === currentWeekNumber + 1
-                  ? 'bg-amber-500 text-slate-950 shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-            >
-              9 (след., 26.10–01.11)
-            </button>
-            <button
-              onClick={() => setSelectedWeek(currentWeekNumber + 2)}
-              className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                selectedWeek === currentWeekNumber + 2
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-            >
-              10 (+2 нед., 02–08.11)
-            </button>
+            {currentWeekNumber + 1 <= 17 && (
+              <button
+                onClick={() => setSelectedWeek(currentWeekNumber + 1)}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                  selectedWeek === currentWeekNumber + 1
+                    ? 'bg-amber-500 text-slate-950 shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                {currentWeekNumber + 1} (след.{weeksMap?.[String(currentWeekNumber + 1)]?.label ? `, ${weeksMap[String(currentWeekNumber + 1)].label}` : ''})
+              </button>
+            )}
+            {currentWeekNumber + 2 <= 17 && (
+              <button
+                onClick={() => setSelectedWeek(currentWeekNumber + 2)}
+                className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                  selectedWeek === currentWeekNumber + 2
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                {currentWeekNumber + 2} (+2 нед.{weeksMap?.[String(currentWeekNumber + 2)]?.label ? `, ${weeksMap[String(currentWeekNumber + 2)].label}` : ''})
+              </button>
+            )}
 
             {/* Select dropdown for all 17 weeks */}
             <div className="relative inline-block ml-1">

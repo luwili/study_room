@@ -56,7 +56,7 @@
                     android:lines="1"
                     android:ellipsize="none"
                     android:fontFamily="@font/anthropic_serif"
-                    android:text="Неделя 8"
+                    android:text="Неделя 10"
                     android:textColor="@color/accent_primary"
                     android:textSize="10sp"
                     android:textStyle="bold" />

@@ -121,6 +121,8 @@ object ScheduleRepository {
     fun saveScheduleJson(context: Context, jsonContent: String): Boolean {
         return try {
             if (jsonContent.isNotBlank() && jsonContent.contains("ПОНБ-УП-304С")) {
+                // Validate JSON structure before overwriting cache
+                JSONObject(jsonContent)
                 val cacheFile = File(context.filesDir, CACHE_FILE_NAME)
                 cacheFile.writeText(jsonContent)
                 setLastSync(context, System.currentTimeMillis())
@@ -141,7 +143,7 @@ object ScheduleRepository {
                     readTimeout = 4000
                     requestMethod = "GET"
                     instanceFollowRedirects = true
-                    setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; StudyRoomWidget/1.2.0)")
+                    setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; StudyRoomWidget/1.3.0)")
                     setRequestProperty("Cache-Control", "no-cache, no-store")
                     setRequestProperty("Accept", "application/json, text/plain, */*")
                 }
@@ -191,7 +193,7 @@ object ScheduleRepository {
             val root = JSONObject(jsonString)
             // Dynamically calculate current week based on date; fallback to json if calculation fails
             val dynamicWeekNumber = TimeUtils.calculateCurrentWeek()
-            val currentWeekNumber = if (dynamicWeekNumber in 1..17) dynamicWeekNumber else root.optInt("currentWeekNumber", 9)
+            val currentWeekNumber = if (dynamicWeekNumber in 1..17) dynamicWeekNumber else root.optInt("currentWeekNumber", 10)
             val dayOfWeek = TimeUtils.getUfaDayOfWeek()
             val todayDate = TimeUtils.getUfaDateString()
 
@@ -235,7 +237,7 @@ object ScheduleRepository {
             }
 
             if (targetDayObj == null) {
-                return DaySchedule("Сегодня", todayDate, currentWeekNumber, !isSunday, emptyList())
+                return DaySchedule("Сегодня", todayDate, targetWeekNumber, !isSunday, emptyList())
             }
 
             val dayName = targetDayObj.optString("dayName", "Сегодня")
