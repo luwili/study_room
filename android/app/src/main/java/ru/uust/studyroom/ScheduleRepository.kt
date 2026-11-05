@@ -54,6 +54,7 @@ object ScheduleRepository {
     fun getSubjectAbbr(fullName: String): String {
         val lower = fullName.lowercase()
         return when {
+            lower.contains("окно") -> "ОКНО"
             lower.contains("административн") -> "АСП"
             lower.contains("уголовно-процесс") || lower.contains("уголовный процесс") -> "УПП"
             lower.contains("уголовн") -> "УП"
@@ -78,6 +79,7 @@ object ScheduleRepository {
     fun getShortSubjectName(fullName: String): String {
         val lower = fullName.lowercase()
         return when {
+            lower.contains("окно") -> "Окно (пары нет)"
             lower.contains("административн") -> "Админ. процесс"
             lower.contains("уголовно-процесс") || lower.contains("уголовный процесс") -> "Уголовный процесс"
             lower.contains("уголовн") -> "Уголовное право"
@@ -100,6 +102,7 @@ object ScheduleRepository {
             .replace("каб.", "")
             .trim()
         return when {
+            cleaned.lowercase().contains("перерыв") -> "Перерыв"
             cleaned.isBlank() -> "Достоевского 131"
             cleaned.contains("Спорткомплекс") -> "Спорткомплекс"
             else -> "каб. $cleaned"
@@ -143,7 +146,7 @@ object ScheduleRepository {
                     readTimeout = 4000
                     requestMethod = "GET"
                     instanceFollowRedirects = true
-                    setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; StudyRoomWidget/1.3.0)")
+                    setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; StudyRoomWidget/1.4.0)")
                     setRequestProperty("Cache-Control", "no-cache, no-store")
                     setRequestProperty("Accept", "application/json, text/plain, */*")
                 }
@@ -274,12 +277,57 @@ object ScheduleRepository {
                 }
             }
 
+            val completeList = mutableListOf<PairItem>()
+            if (pairsList.isNotEmpty()) {
+                val sorted = pairsList.sortedBy { it.pairNumber }
+                val minP = sorted.first().pairNumber
+                val maxP = sorted.last().pairNumber
+                val pairMap = sorted.associateBy { it.pairNumber }
+
+                for (pNum in minP..maxP) {
+                    val existing = pairMap[pNum]
+                    if (existing != null) {
+                        completeList.add(existing)
+                    } else {
+                        val (tStart, tEnd) = when (pNum) {
+                            1 -> "08:00" to "09:20"
+                            2 -> "09:30" to "10:50"
+                            3 -> "11:10" to "12:30"
+                            4 -> "12:40" to "14:00"
+                            5 -> "14:10" to "15:30"
+                            6 -> "15:40" to "17:00"
+                            7 -> "17:20" to "18:40"
+                            8 -> "18:50" to "20:10"
+                            9 -> "20:20" to "21:40"
+                            else -> "" to ""
+                        }
+                        val isCurrent = if (!isSunday && targetWeekNumber == currentWeekNumber) {
+                            TimeUtils.isPairNow(tStart, tEnd)
+                        } else false
+
+                        completeList.add(
+                            PairItem(
+                                id = "win-$targetWeekNumber-$targetDayOfWeek-$pNum",
+                                pairNumber = pNum,
+                                timeStart = tStart,
+                                timeEnd = tEnd,
+                                subjectName = "Окно (пары нет)",
+                                teacher = "Свободное время",
+                                room = "Перерыв",
+                                type = "Окно",
+                                isCurrent = isCurrent
+                            )
+                        )
+                    }
+                }
+            }
+
             DaySchedule(
                 dayName = dayName,
                 date = dateStr,
                 weekNumber = targetWeekNumber,
                 isToday = !isSunday,
-                pairs = pairsList
+                pairs = completeList
             )
         } catch (_: Exception) {
             DaySchedule("Сегодня", TimeUtils.getUfaDateString(), TimeUtils.calculateCurrentWeek(), true, emptyList())

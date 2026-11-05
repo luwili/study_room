@@ -9,7 +9,7 @@ interface WidgetDownloadModalProps {
 }
 
 export const APK_DOWNLOAD_URL = 'https://github.com/luwili/study_room/releases/download/widget-apk-latest/StudyRoom-Widget.apk';
-export const APK_VERSION = '1.3.0';
+export const APK_VERSION = '1.4.0';
 
 export const WidgetDownloadModal: React.FC<WidgetDownloadModalProps> = ({ isOpen, onClose }) => {
   const [synced, setSynced] = useState(false);

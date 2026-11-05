@@ -11,11 +11,13 @@ import {
   Sparkles,
   RefreshCw,
   Smartphone,
-  Download
+  Download,
+  Coffee
 } from 'lucide-react';
 import scheduleData from '../data/schedule.json';
 import { getUfaTimeInfo, calculateCurrentWeek } from '../utils/time';
 import { ScheduleDay, ScheduleItem, ScheduleWeek } from '../types';
+import { getScheduleEntriesWithWindows, countDayWindows } from '../utils/scheduleGaps';
 
 interface SchedulePageProps {
   onNavigateTeacher?: (teacherName: string) => void;
@@ -142,7 +144,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({
         <div className="flex items-center space-x-2.5">
           <Smartphone className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
           <div className="text-xs text-slate-700 dark:text-slate-300">
-            <span className="font-bold text-slate-900 dark:text-white">Нативный виджет расписания для Android (v1.3.0):</span> пары и звонки прямо на домашнем экране телефона.
+            <span className="font-bold text-slate-900 dark:text-white">Нативный виджет расписания для Android (v1.4.0):</span> пары и звонки прямо на домашнем экране телефона.
           </div>
         </div>
         <div className="flex items-center space-x-2 self-end sm:self-auto flex-shrink-0">
@@ -313,7 +315,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({
                   )}
                 </div>
                 <div className={`text-[11px] mt-0.5 ${isSelected ? 'text-brand-200' : 'text-slate-400'}`}>
-                  {d.date.slice(5).replace('-', '.')} · {d.pairs.length} пар
+                  {d.date.slice(5).replace('-', '.')} · {d.pairs.length} пар{countDayWindows(d.pairs) > 0 ? ` · ${countDayWindows(d.pairs)} ${countDayWindows(d.pairs) === 1 ? 'окно' : 'окна'}` : ''}
                 </div>
               </button>
             );
@@ -334,9 +336,18 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({
                   </span>
                 )}
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Всего пар на день: {currentDayData.pairs.length}
-              </p>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <span>Всего пар на день: <strong className="text-slate-700 dark:text-slate-200">{currentDayData.pairs.length}</strong></span>
+                {countDayWindows(currentDayData.pairs) > 0 && (
+                  <>
+                    <span>•</span>
+                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60">
+                      <Coffee className="w-3 h-3 text-amber-500" />
+                      <span>{countDayWindows(currentDayData.pairs) === 1 ? '1 окно между парами' : `${countDayWindows(currentDayData.pairs)} окна между парами`}</span>
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">
@@ -356,7 +367,76 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({
             </div>
           ) : (
             <div className="space-y-3">
-              {currentDayData.pairs.map((p) => {
+              {getScheduleEntriesWithWindows(currentDayData.pairs, currentDayData.dayOfWeek).map((entry) => {
+                if (entry.isWindow) {
+                  const isCurrentWindow = 
+                    selectedWeek === currentWeekNumber &&
+                    currentDayData.dayOfWeek === timeInfo.dayOfWeek && 
+                    timeInfo.currentPair === entry.window.pairNumber;
+
+                  return (
+                    <div
+                      key={entry.window.id}
+                      className={`p-4 rounded-xl border border-dashed transition-all ${
+                        isCurrentWindow
+                          ? 'bg-amber-500/10 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600 ring-2 ring-amber-400/30'
+                          : 'bg-slate-50/70 dark:bg-slate-800/25 border-slate-300 dark:border-slate-700/80 hover:border-slate-400 dark:hover:border-slate-600'
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-start space-x-3.5">
+                          <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0 text-center shadow-sm border border-dashed ${
+                            isCurrentWindow
+                              ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-400 dark:border-amber-600 text-amber-800 dark:text-amber-300'
+                              : 'bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500'
+                          }`}>
+                            <span className="text-[10px] uppercase font-bold tracking-wider">Пара</span>
+                            <span className="text-base font-extrabold leading-none">
+                              {entry.window.pairNumber}
+                            </span>
+                          </div>
+
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-extrabold text-slate-700 dark:text-slate-200 text-base flex items-center space-x-2">
+                                <Coffee className="w-4 h-4 text-amber-500" />
+                                <span>Окно (пары нет)</span>
+                              </span>
+                              {isCurrentWindow && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950 animate-pulse">
+                                  СЕЙЧАС ОКНО
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                              <span className="font-medium text-slate-600 dark:text-slate-300">
+                                Свободное время между занятиями
+                              </span>
+                              <span>•</span>
+                              <span>Коворкинг (каб. 203) / Буфет / Библиотека</span>
+                            </div>
+
+                            <div className="text-[11px] text-slate-400 dark:text-slate-500 italic mt-1">
+                              Занятия по расписанию нет (окно перед следующей парой)
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200 dark:border-slate-700/60 flex-shrink-0">
+                          <div className="font-mono text-sm font-bold text-slate-600 dark:text-slate-300">
+                            {entry.window.timeStart} – {entry.window.timeEnd}
+                          </div>
+                          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/80 dark:border-amber-800/50 mt-1">
+                            Окно (1ч 20м)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                const p = entry.pair;
                 const isCurrentPair = 
                   selectedWeek === currentWeekNumber &&
                   currentDayData.dayOfWeek === timeInfo.dayOfWeek && 
@@ -472,7 +552,38 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({
                         Нет занятий (выходной / праздник)
                       </div>
                     ) : (
-                      d.pairs.map((p) => {
+                      getScheduleEntriesWithWindows(d.pairs, d.dayOfWeek).map((entry) => {
+                        if (entry.isWindow) {
+                          const isCurrentWindow = isToday && timeInfo.currentPair === entry.window.pairNumber;
+                          return (
+                            <div
+                              key={entry.window.id}
+                              className={`p-2.5 rounded-xl border border-dashed text-xs transition-all ${
+                                isCurrentWindow
+                                  ? 'bg-amber-500/10 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600'
+                                  : 'bg-slate-50/60 dark:bg-slate-800/30 border-slate-300/80 dark:border-slate-700/60'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className="font-mono font-bold text-slate-500 dark:text-slate-400">
+                                  {entry.window.pairNumber} пара · {entry.window.timeStart} – {entry.window.timeEnd}
+                                </span>
+                                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded bg-amber-100/70 dark:bg-amber-950/60 border border-amber-300/60 dark:border-amber-800/60">
+                                  {isCurrentWindow ? 'Сейчас окно' : 'Окно'}
+                                </span>
+                              </div>
+                              <div className="font-semibold text-slate-600 dark:text-slate-300 flex items-center space-x-1.5">
+                                <Coffee className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                                <span>Пары нет (окно)</span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                                Свободное время между занятиями
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        const p = entry.pair;
                         const isCurrentPair = isToday && timeInfo.currentPair === p.pairNumber;
                         return (
                           <div

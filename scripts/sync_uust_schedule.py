@@ -40,6 +40,7 @@ SUBJECT_MAP = {
     'Гражданское процессуальное право (гражданский процесс)': 'grazhd-proc',
     'Международное право': 'int-pravo',
     'Экономические основы бизнеса': 'econ-biz',
+    'Судебная медицина и психиатрия': 'sudeb-med',
 }
 
 WEEKDAYS = [
@@ -232,20 +233,65 @@ def fetch_schedule_isu(opener, target_week):
             "X-Requested-With": "XMLHttpRequest",
             "Content-Type": "application/x-www-form-urlencoded"
         }
-    ), timeout=6)
+    ), timeout=8)
     resp_html = r.read().decode('utf-8')
 
-    pattern = r"\$\('#(\d+)_(\d+)_group'\)\.append\('<div><br>(.*?)<br><button[^>]*>([^<]+)</button><br><button[^>]*>([^<]+)</button><br></div>'\)"
-    matches = re.findall(pattern, resp_html)
+    # Извлекаем все ячейки со вставками расписания вида $('#1_2_group').append('<div>...</div>')
+    appends = re.findall(r"\$\('#(\d+)_(\d+)_group'\)\.append\('(.*?)<\\?/div>'\)", resp_html)
 
     parsed_entries = []
-    for pair_str, day_str, subj_raw, teacher, room in matches:
+    for pair_str, day_str, content in appends:
         pair_num = int(pair_str)
         day_num = int(day_str)
-        
-        type_m = re.search(r'\(((?:Практика|Лекция|Семинар|Лабораторная|Зачёт|Экзамен)[^()]*(\([^()]*\))?)\)$', subj_raw.strip())
+
+        inner = re.sub(r'^<div>(?:<br>)?', '', content)
+
+        # Выделяем преподавателя и аудиторию по кнопкам
+        teacher = ""
+        room = ""
+        for btn_m in re.finditer(r"<button[^>]*onclick=[\"'](link_teacher|link_class)\([^\"']*\)[\"'][^>]*>([^<]+)</button>", inner):
+            btn_type, btn_val = btn_m.group(1), btn_m.group(2).strip()
+            if btn_type == "link_teacher":
+                teacher = btn_val
+            elif btn_type == "link_class":
+                room = btn_val
+
+        # Резервное определение кнопок, если onclick изменился
+        if not teacher and not room:
+            generic_btns = re.findall(r"<button[^>]*>([^<]+)</button>", inner)
+            if len(generic_btns) == 2:
+                teacher, room = generic_btns[0].strip(), generic_btns[1].strip()
+            elif len(generic_btns) == 1:
+                room = generic_btns[0].strip()
+        elif not room:
+            generic_btns = re.findall(r"<button[^>]*>([^<]+)</button>", inner)
+            for gb in generic_btns:
+                if gb.strip() != teacher:
+                    room = gb.strip()
+                    break
+
+        # Название дисциплины идет до первой кнопки
+        first_btn_pos = inner.find("<button")
+        if first_btn_pos != -1:
+            subj_raw = inner[:first_btn_pos]
+        else:
+            subj_raw = inner
+
+        subj_raw = re.sub(r"<[^>]+>", " ", subj_raw).strip()
+        subj_raw = html.unescape(subj_raw)
+
+        # Дополнительные пометки после последней кнопки (например, «КОВОРКИНГ»)
+        last_btn_pos = inner.rfind("</button>")
+        extra_note = ""
+        if last_btn_pos != -1:
+            after_btn = inner[last_btn_pos + 9:]
+            after_clean = re.sub(r"<[^>]+>", " ", after_btn).strip()
+            if after_clean:
+                extra_note = html.unescape(after_clean)
+
+        type_m = re.search(r'\(((?:Практика|Лекция|Семинар|Лабораторная|Зачёт|Экзамен)[^()]*(\([^()]*\))?)\)$', subj_raw)
         lesson_type = type_m.group(1).strip() if type_m else "Практика (семинар)"
-        subj_title = re.sub(r'\s*\(' + re.escape(lesson_type) + r'\)$', '', subj_raw.strip())
+        subj_title = re.sub(r'\s*\(' + re.escape(lesson_type) + r'\)$', '', subj_raw).strip()
 
         time_start, time_end = PAIR_TIMES.get(pair_num, ("08:00", "09:20"))
         parsed_entries.append({
@@ -255,8 +301,9 @@ def fetch_schedule_isu(opener, target_week):
             'timeEnd': time_end,
             'subject': subj_title,
             'type': lesson_type,
-            'teacher': teacher.strip(),
-            'room': room.strip()
+            'teacher': teacher.strip() if teacher else "Преподаватель кафедры",
+            'room': room.strip(),
+            'extraNote': extra_note.strip()
         })
 
     return parsed_entries
@@ -530,21 +577,32 @@ def fetch_session_data_isu(opener):
         print("Ошибка синхронизации сессии из ИСУ УУНиТ:", e)
         return None
 
-def format_room(raw_room, subj_title):
+def format_room(raw_room, subj_title, extra_note=''):
     if not raw_room:
-        return "Институт права"
-    if 'физическая' in subj_title.lower() or 'уточняется' in raw_room.lower() or 'спорт' in raw_room.lower():
-        return "Спорткомплекс УУНиТ (ул. Заки Валиди, 32 / Уточняется)"
-    if 'актовый зал' in raw_room.lower():
-        return "Актовый зал (Достоевского 131)"
-    m = re.search(r'-\s*([0-9]{2,4}[а-яА-Я]?)\b', raw_room)
-    if m:
-        return f"каб. {m.group(1)} (Достоевского 131)"
-    m2 = re.findall(r'\b(\d{3}[а-яА-Я]?)\b', raw_room)
-    rooms = [r for r in m2 if r != '131']
-    if rooms:
-        return f"каб. {rooms[-1]} (Достоевского 131)"
-    return raw_room
+        res = "Институт права"
+    elif 'физическая' in subj_title.lower() or 'уточняется' in raw_room.lower() or 'спорт' in raw_room.lower():
+        res = "Спорткомплекс УУНиТ (ул. Заки Валиди, 32 / Уточняется)"
+    elif 'актовый зал' in raw_room.lower():
+        res = "Актовый зал (Достоевского 131)"
+    else:
+        m = re.search(r'-\s*([0-9]{2,4}[а-яА-Я]?)\b', raw_room)
+        if m:
+            res = f"каб. {m.group(1)} (Достоевского 131)"
+        else:
+            m2 = re.findall(r'\b(\d{3}[а-яА-Я]?)\b', raw_room)
+            rooms = [r for r in m2 if r != '131']
+            if rooms:
+                res = f"каб. {rooms[-1]} (Достоевского 131)"
+            else:
+                res = raw_room
+
+    if extra_note:
+        clean_note = extra_note.strip()
+        if clean_note.upper() == 'КОВОРКИНГ':
+            res = f"{res} (Коворкинг)"
+        elif clean_note:
+            res = f"{res} · {clean_note}"
+    return res
 
 def build_week_days(w, entries, monday_start):
     week_monday = monday_start + timedelta(weeks=w - 1)
@@ -558,12 +616,14 @@ def build_week_days(w, entries, monday_start):
         for idx, entry in enumerate(day_entries, start=1):
             subj_title = entry['subject']
             subj_id = SUBJECT_MAP.get(subj_title, 'other')
-            room_str = format_room(entry['room'], subj_title)
+            extra_note = entry.get('extraNote', '')
+            room_str = format_room(entry.get('room', ''), subj_title, extra_note)
 
             teacher = entry['teacher']
             if 'Нурмухаметов' in teacher:
                 teacher = f"{teacher} (Куратор)"
 
+            note_extra = f" [{extra_note.title()}]" if extra_note else ""
             pairs.append({
                 "id": f"sch-w{w}-{day_id}-{idx}",
                 "pairNumber": entry['pair'],
@@ -574,7 +634,7 @@ def build_week_days(w, entries, monday_start):
                 "type": entry['type'],
                 "teacher": teacher,
                 "room": room_str,
-                "notes": f"Занятие по расписанию ИСУ УУНиТ ({entry['type']})"
+                "notes": f"Занятие по расписанию ИСУ УУНиТ ({entry['type']}){note_extra}"
             })
 
         days_data.append({

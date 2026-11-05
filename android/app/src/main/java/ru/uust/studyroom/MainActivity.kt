@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
         val versionName = try {
             packageManager.getPackageInfo(packageName, 0).versionName
         } catch (_: Exception) {
-            "1.3.0"
+            "1.4.0"
         }
         tvVersion.text = "Версия $versionName · ПОНБ-УП-304С"
 
