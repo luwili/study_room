@@ -88,3 +88,11 @@ jobs:
           files: output/StudyRoom-Widget.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger GitHub Pages Deploy with new APK
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Запуск обновления сайта GitHub Pages для раздачи нового APK..."
+          gh workflow run deploy.yml --ref main || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

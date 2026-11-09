@@ -167,7 +167,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onOpenSync, isSy
 
         <div className="flex items-center space-x-2 w-full sm:w-auto flex-shrink-0">
           <a
-            href="https://github.com/luwili/study_room/releases/download/widget-apk-latest/StudyRoom-Widget.apk"
+            href="./StudyRoom-Widget.apk"
             download="StudyRoom-Widget.apk"
             className="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all active:scale-95"
           >

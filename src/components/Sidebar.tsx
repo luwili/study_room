@@ -126,7 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </p>
           <div className="mt-2.5 flex items-center space-x-1.5">
             <a
-              href="https://github.com/luwili/study_room/releases/download/widget-apk-latest/StudyRoom-Widget.apk"
+              href="./StudyRoom-Widget.apk"
               download="StudyRoom-Widget.apk"
               className="flex-1 flex items-center justify-center space-x-1.5 py-1.5 px-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition-all shadow-sm active:scale-95 text-center"
             >

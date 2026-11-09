@@ -20,7 +20,7 @@ import kotlinx.coroutines.withContext
 class MainActivity : AppCompatActivity() {
 
     private val cabinetUrl = "https://luwili.github.io/study_room/"
-    private val apkDownloadUrl = "https://github.com/luwili/study_room/releases/download/widget-apk-latest/StudyRoom-Widget.apk"
+    private val apkDownloadUrl = "https://luwili.github.io/study_room/StudyRoom-Widget.apk"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

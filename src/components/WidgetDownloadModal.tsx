@@ -8,7 +8,8 @@ interface WidgetDownloadModalProps {
   onClose: () => void;
 }
 
-export const APK_DOWNLOAD_URL = 'https://github.com/luwili/study_room/releases/download/widget-apk-latest/StudyRoom-Widget.apk';
+export const APK_DOWNLOAD_URL = './StudyRoom-Widget.apk';
+export const GITHUB_RELEASE_APK_URL = 'https://github.com/luwili/study_room/releases/download/widget-apk-latest/StudyRoom-Widget.apk';
 export const APK_VERSION = '1.5.0';
 
 export const WidgetDownloadModal: React.FC<WidgetDownloadModalProps> = ({ isOpen, onClose }) => {
@@ -105,18 +106,28 @@ export const WidgetDownloadModal: React.FC<WidgetDownloadModalProps> = ({ isOpen
           </div>
 
           {/* Download Button */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <a
               href={APK_DOWNLOAD_URL}
               download="StudyRoom-Widget.apk"
               className="w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/25 border border-amber-300/60 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Download className="w-4 h-4 text-slate-950" />
-              <span>Скачать StudyRoom-Widget.apk (v{APK_VERSION})</span>
+              <span>Скачать с сайта StudyRoom-Widget.apk (v{APK_VERSION})</span>
             </a>
-            <p className="text-center text-[11px] text-slate-400 dark:text-slate-500">
-              Размер ~2.5 МБ · Поддерживает Android 8.0+ (Samsung One UI, Xiaomi HyperOS, Honor, Pixel)
-            </p>
+
+            <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 px-1">
+              <span>Размер ~5.8 МБ · Android 8.0+</span>
+              <a
+                href={GITHUB_RELEASE_APK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber-600 dark:text-amber-400 hover:underline flex items-center space-x-1"
+              >
+                <span>Зеркало на GitHub</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
           </div>
 
           {/* VPN & Whitelists Hint */}

@@ -57,6 +57,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Download Widget APK for direct website download
+        run: |
+          mkdir -p public
+          echo "Загрузка актуального StudyRoom-Widget.apk для прямой раздачи с сайта..."
+          curl -L -s -f "https://github.com/${{ github.repository }}/releases/download/widget-apk-latest/StudyRoom-Widget.apk" -o public/StudyRoom-Widget.apk || true
+          if [ -s public/StudyRoom-Widget.apk ]; then
+            echo "StudyRoom-Widget.apk успешно добавлен в public/: $(ls -lh public/StudyRoom-Widget.apk)"
+          else
+            echo "Внимание: не удалось скачать APK из релиза, сборка продолжится без локального файла APK"
+          fi
+
       - name: Run typecheck & build
         run: npm run build
 

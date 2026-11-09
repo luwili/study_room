@@ -149,7 +149,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({
         </div>
         <div className="flex items-center space-x-2 self-end sm:self-auto flex-shrink-0">
           <a
-            href="https://github.com/luwili/study_room/releases/download/widget-apk-latest/StudyRoom-Widget.apk"
+            href="./StudyRoom-Widget.apk"
             download="StudyRoom-Widget.apk"
             className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-sm transition-all active:scale-95"
           >
