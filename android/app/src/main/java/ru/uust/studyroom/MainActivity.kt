@@ -39,9 +39,12 @@ class MainActivity : AppCompatActivity() {
         val versionName = try {
             packageManager.getPackageInfo(packageName, 0).versionName
         } catch (_: Exception) {
-            "1.4.0"
+            "1.5.0"
         }
         tvVersion.text = "Версия $versionName · ПОНБ-УП-304С"
+
+        // Ensure 00:00 midnight auto-update is scheduled
+        ScheduleWidgetProvider.scheduleMidnightAlarm(this)
 
         // Initial check
         refreshData(tvStatus)
@@ -208,6 +211,7 @@ class MainActivity : AppCompatActivity() {
                     if (showToast) Toast.makeText(this@MainActivity, "Данные загружены из кэша", Toast.LENGTH_SHORT).show()
                 }
                 ScheduleWidgetProvider.updateAllWidgets(this@MainActivity)
+                ScheduleWidgetProvider.scheduleMidnightAlarm(this@MainActivity)
             }
         }
     }

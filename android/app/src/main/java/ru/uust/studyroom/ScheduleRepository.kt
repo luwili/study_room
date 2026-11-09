@@ -33,6 +33,7 @@ object ScheduleRepository {
     private const val CACHE_FILE_NAME = "cached_schedule.json"
     private const val PREFS_NAME = "study_room_prefs"
     private const val KEY_LAST_SYNC = "last_sync_timestamp"
+    private const val KEY_LAST_RENDERED_DATE = "last_rendered_date"
 
     /**
      * Multi-CDN mirror endpoints.
@@ -109,6 +110,13 @@ object ScheduleRepository {
         }
     }
 
+    fun hasDateRolledOver(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val lastRendered = prefs.getString(KEY_LAST_RENDERED_DATE, "")
+        val today = TimeUtils.getUfaDateString()
+        return lastRendered.isNotBlank() && lastRendered != today
+    }
+
     fun shouldRefreshNetwork(context: Context): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val lastSync = prefs.getLong(KEY_LAST_SYNC, 0L)
@@ -146,7 +154,7 @@ object ScheduleRepository {
                     readTimeout = 4000
                     requestMethod = "GET"
                     instanceFollowRedirects = true
-                    setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; StudyRoomWidget/1.4.0)")
+                    setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; StudyRoomWidget/1.5.0)")
                     setRequestProperty("Cache-Control", "no-cache, no-store")
                     setRequestProperty("Accept", "application/json, text/plain, */*")
                 }
@@ -196,9 +204,18 @@ object ScheduleRepository {
             val root = JSONObject(jsonString)
             // Dynamically calculate current week based on date; fallback to json if calculation fails
             val dynamicWeekNumber = TimeUtils.calculateCurrentWeek()
-            val currentWeekNumber = if (dynamicWeekNumber in 1..17) dynamicWeekNumber else root.optInt("currentWeekNumber", 10)
+            val currentWeekNumber = if (dynamicWeekNumber in 1..17) dynamicWeekNumber else root.optInt("currentWeekNumber", 11)
             val dayOfWeek = TimeUtils.getUfaDayOfWeek()
             val todayDate = TimeUtils.getUfaDateString()
+
+            // Record date of render to detect day rollover upon screen unlock
+            try {
+                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(KEY_LAST_RENDERED_DATE, todayDate)
+                    .apply()
+            } catch (_: Exception) {
+            }
 
             // If Sunday (7), show Monday's schedule of upcoming week
             val isSunday = dayOfWeek == 7

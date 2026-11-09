@@ -43,7 +43,7 @@
             android:background="@drawable/bg_badge_pill"
             android:paddingHorizontal="10dp"
             android:paddingVertical="4dp"
-            android:text="Версия 1.4.0 · ПОНБ-УП-304С"
+            android:text="Версия 1.5.0 · ПОНБ-УП-304С"
             android:textColor="@color/amber_primary"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -174,7 +174,7 @@
             android:layout_height="52dp"
             android:layout_marginTop="10dp"
             android:backgroundTint="@color/card_surface"
-            android:text="Скачать свежий APK (v1.4.0)"
+            android:text="Скачать свежий APK (v1.5.0)"
             android:textColor="@color/text_white" />
 
         <Button

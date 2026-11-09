@@ -52,19 +52,30 @@ object TimeUtils {
      */
     fun calculateCurrentWeek(cal: Calendar = getUfaCalendar()): Int {
         val startMonday = Calendar.getInstance(UFA_TIMEZONE).apply {
-            set(Calendar.YEAR, 2026)
-            set(Calendar.MONTH, Calendar.AUGUST)
-            set(Calendar.DAY_OF_MONTH, 31)
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
+            clear()
+            set(2026, Calendar.AUGUST, 31, 0, 0, 0)
         }
         val diffMillis = cal.timeInMillis - startMonday.timeInMillis
         if (diffMillis < 0) return 1
         val diffDays = (diffMillis / (1000L * 60 * 60 * 24)).toInt()
         val week = (diffDays / 7) + 1
         return week.coerceIn(1, 17)
+    }
+
+    /**
+     * Calculates the timestamp (in epoch millis) for the next 00:00:05 in Ufa timezone (Asia/Yekaterinburg).
+     * 5-second buffer ensures system clock has reliably crossed into the new calendar day.
+     */
+    fun getNextMidnightMillis(): Long {
+        val cal = getUfaCalendar()
+        cal.add(Calendar.DAY_OF_MONTH, 1)
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 5)
+        cal.set(Calendar.MILLISECOND, 0)
+        val target = cal.timeInMillis
+        val now = System.currentTimeMillis()
+        return if (target <= now) now + 60_000L else target
     }
 
     /**

@@ -1,5 +1,6 @@
 package ru.uust.studyroom
 
+import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -21,7 +22,43 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
 
     companion object {
         const val ACTION_REFRESH = "ru.uust.studyroom.ACTION_REFRESH"
+        const val ACTION_MIDNIGHT_UPDATE = "ru.uust.studyroom.ACTION_MIDNIGHT_UPDATE"
+        private const val MIDNIGHT_ALARM_REQ_CODE = 2026
         private const val WEB_CABINET_URL = "https://luwili.github.io/study_room/#/schedule"
+
+        /**
+         * Schedules exact or allow-while-idle daily alarm targeting midnight (00:00:05) in Asia/Yekaterinburg.
+         * Wakes device and updates widget automatically every night with zero battery drain.
+         */
+        fun scheduleMidnightAlarm(context: Context) {
+            try {
+                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+                val intent = Intent(context, ScheduleWidgetProvider::class.java).apply {
+                    action = ACTION_MIDNIGHT_UPDATE
+                }
+                val pendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    MIDNIGHT_ALARM_REQ_CODE,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+
+                val triggerAtMillis = TimeUtils.getNextMidnightMillis()
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (alarmManager.canScheduleExactAlarms()) {
+                        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                    } else {
+                        alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                    }
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                } else {
+                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                }
+            } catch (_: Exception) {
+            }
+        }
 
         fun updateAppWidget(
             context: Context,
@@ -199,7 +236,7 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
 
             views.setTextViewText(R.id.tv_week_badge, "Неделя ${schedule.weekNumber}")
             val headerDate = if (schedule.isToday) {
-                "${TimeUtils.getFormattedHeaderDate()} (${schedule.dayName})"
+                TimeUtils.getFormattedHeaderDate()
             } else {
                 "Завтра: ${schedule.dayName}, ${schedule.date}"
             }
@@ -265,11 +302,17 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
         }
     }
 
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        scheduleMidnightAlarm(context)
+    }
+
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
+        scheduleMidnightAlarm(context)
         for (appWidgetId in appWidgetIds) {
             updateAppWidget(context, appWidgetManager, appWidgetId)
         }
@@ -303,7 +346,33 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         when (intent.action) {
+            ACTION_MIDNIGHT_UPDATE -> {
+                // 1. Reschedule next midnight alarm immediately so daily 00:00 rollover chain is permanent
+                scheduleMidnightAlarm(context)
+
+                // 2. Immediately update all widgets with new day's schedule
+                updateAllWidgets(context)
+
+                // 3. Fetch fresh network data with goAsync() to pick up any schedule changes
+                val pendingResult = goAsync()
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val updated = ScheduleRepository.fetchAndCache(context)
+                        if (updated) {
+                            withContext(Dispatchers.Main) {
+                                updateAllWidgets(context)
+                            }
+                        }
+                    } catch (_: Exception) {
+                    } finally {
+                        pendingResult.finish()
+                    }
+                }
+            }
             ACTION_REFRESH -> {
+                // Re-arm midnight alarm
+                scheduleMidnightAlarm(context)
+
                 // 1. Immediately refresh views with local data for instant tactile feedback
                 updateAllWidgets(context)
 
@@ -326,14 +395,18 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
             Intent.ACTION_TIME_CHANGED,
+            "android.intent.action.TIME_SET",
             Intent.ACTION_TIMEZONE_CHANGED,
             Intent.ACTION_DATE_CHANGED,
             Intent.ACTION_USER_PRESENT -> {
+                // Always ensure midnight alarm is armed upon device reboot or clock update
+                scheduleMidnightAlarm(context)
+
                 // Instantly update on screen unlock or day rollover
                 updateAllWidgets(context)
 
-                // Background sync if more than 15 mins since last sync
-                if (ScheduleRepository.shouldRefreshNetwork(context)) {
+                // Background sync if date rolled over OR more than 15 mins since last sync
+                if (ScheduleRepository.hasDateRolledOver(context) || ScheduleRepository.shouldRefreshNetwork(context)) {
                     val pendingResult = goAsync()
                     CoroutineScope(Dispatchers.IO).launch {
                         try {

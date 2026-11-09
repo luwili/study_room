@@ -699,14 +699,26 @@ def sync_all(target_week=None, force=False):
             authenticate_isu(opener, login, password)
 
             # Параллельный сбор расписания всех 17 недель, объявлений и сессии
-            with ThreadPoolExecutor(max_workers=8) as ex:
+            with ThreadPoolExecutor(max_workers=6) as ex:
                 f_ann = ex.submit(fetch_announcements_isu, opener)
                 f_sess = ex.submit(fetch_session_data_isu, opener)
                 week_futs = {w: ex.submit(fetch_schedule_isu, opener, w) for w in range(1, 18)}
-                ann_entries = f_ann.result()
-                f_sess.result()
+
+                try:
+                    ann_entries = f_ann.result(timeout=15)
+                except Exception as e:
+                    print("Предупреждение: не удалось получить объявления из ИСУ:", e)
+
+                try:
+                    f_sess.result(timeout=15)
+                except Exception as e:
+                    print("Предупреждение: не удалось получить сессию из ИСУ:", e)
+
                 for w, fut in week_futs.items():
-                    all_weeks_raw[w] = fut.result()
+                    try:
+                        all_weeks_raw[w] = fut.result(timeout=20)
+                    except Exception as e:
+                        print(f"Предупреждение: таймаут получения недели {w} из ИСУ: {e}")
 
             total_isu_pairs = sum(len(p) for p in all_weeks_raw.values())
             print(f"Из ИСУ УУНиТ получено: {total_isu_pairs} пар суммарно на 17 недель, {len(ann_entries)} объявлений.")
@@ -717,6 +729,21 @@ def sync_all(target_week=None, force=False):
     if not any(all_weeks_raw.values()):
         print("Запрос расписания через резервный открытый API dev.uust-time.ru...")
         all_weeks_raw = fetch_all_weeks_dev(GROUP_ID, SEMESTER_ID)
+
+    # Чтение существующего расписания для сохранения стабильности данных
+    root_dir = Path(__file__).resolve().parent.parent
+    sched_path = root_dir / 'src' / 'data' / 'schedule.json'
+    ann_path = root_dir / 'src' / 'data' / 'announcements.json'
+
+    existing_weeks = {}
+    if sched_path.exists():
+        try:
+            with open(sched_path, 'r', encoding='utf-8') as f:
+                old_json = json.load(f)
+                if 'weeks' in old_json and isinstance(old_json['weeks'], dict):
+                    existing_weeks = old_json['weeks']
+        except Exception:
+            pass
 
     # 1. Формирование расписания на весь семестр и на выбранную неделю
     monday_start = SEMESTER_START.replace(tzinfo=UFA_TZ) - timedelta(days=SEMESTER_START.weekday())
@@ -729,6 +756,14 @@ def sync_all(target_week=None, force=False):
         entries = all_weeks_raw.get(w, [])
         w_days = build_week_days(w, entries, monday_start)
         w_pairs_count = sum(len(d['pairs']) for d in w_days)
+
+        # Если сеть вернула 0 пар, но в файле уже есть проверенные пары на эту неделю, не затираем их
+        if w_pairs_count == 0 and str(w) in existing_weeks:
+            old_w = existing_weeks[str(w)]
+            if old_w.get('totalPairs', 0) > 0 and old_w.get('days'):
+                w_days = old_w['days']
+                w_pairs_count = old_w['totalPairs']
+
         total_semester_pairs += w_pairs_count
 
         weeks_dict[str(w)] = {
@@ -746,10 +781,6 @@ def sync_all(target_week=None, force=False):
         days_data = weeks_dict[target_week_key]["days"]
     else:
         days_data = weeks_dict.get("8", {}).get("days", [])
-
-    root_dir = Path(__file__).resolve().parent.parent
-    sched_path = root_dir / 'src' / 'data' / 'schedule.json'
-    ann_path = root_dir / 'src' / 'data' / 'announcements.json'
 
     # Сохранение расписания (с защитой от затирания при сбое авторизации или ночных работах ИСУ УУНиТ)
     if total_semester_pairs == 0:
