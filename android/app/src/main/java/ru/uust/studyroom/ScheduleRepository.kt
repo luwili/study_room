@@ -112,7 +112,7 @@ object ScheduleRepository {
 
     fun hasDateRolledOver(context: Context): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val lastRendered = prefs.getString(KEY_LAST_RENDERED_DATE, "")
+        val lastRendered = prefs.getString(KEY_LAST_RENDERED_DATE, "") ?: ""
         val today = TimeUtils.getUfaDateString()
         return lastRendered.isNotBlank() && lastRendered != today
     }
